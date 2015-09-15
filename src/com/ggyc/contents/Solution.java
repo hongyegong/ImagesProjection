@@ -105,7 +105,7 @@ public class Solution {
 	// TODO: Remove unnecessary search
 	public void helper(TreeNode root, ArrayList<Content> list,
 			Map<Integer, Integer> locations, int tmpValue) {
-		if (root == null)
+		if (root == null || list.contains(root.content))
 			return;
 		if (root.content.id != -1 && root.content.value >= 0) {
 			tmpValue += root.content.value == 0 ? 0 : locations
