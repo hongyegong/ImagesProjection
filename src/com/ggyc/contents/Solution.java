@@ -1,14 +1,47 @@
 package com.ggyc.contents;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.TreeMap;
+
+import org.omg.CORBA.PUBLIC_MEMBER;
+
+class TimeNode {
+	int time;
+	int isStart;
+	int range;
+	Content request;
+	TimeNode endTimePair;
+
+	TimeNode(int t, int isStart, int r, Content req) {
+		time = t;
+		this.isStart = isStart;
+		range = r;
+		request = req;
+	}
+
+	public static Comparator<TimeNode> scheduleComparator = new Comparator<TimeNode>() {
+		@Override
+		public int compare(TimeNode s1, TimeNode s2) {
+			if (s1.time == s2.time) {
+				return s1.isStart - s2.isStart;
+			} else {
+				return s1.time - s2.time;
+			}
+		}
+	};
+
+}
 
 public class Solution {
 	// Result of contents selection
@@ -24,6 +57,7 @@ public class Solution {
 	 *            location collection mapping every location(id) to a multiplier
 	 * @return An optimal schedule for all locations
 	 */
+
 	public HashMap<Integer, Content> Selection(ArrayList<Content> contents,
 			Map<Integer, Integer> locations) {
 		HashMap<Integer, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>();
@@ -64,7 +98,7 @@ public class Solution {
 		//
 		// // Treemap for sorted locations by descending multipliers
 		// Map<Integer, Integer> lMap = new TreeMap<Integer,
-		// Integer>(comparator);
+		// Integer(comparator);
 		// lMap.putAll(locations);
 
 		TreeNode root = new TreeNode(new Content(-1));
@@ -93,7 +127,7 @@ public class Solution {
 		helper(root, new ArrayList<Content>(), locations, 0);
 
 		HashMap<Integer, Content> ret = new HashMap<Integer, Content>();
-		// Insert location ID and content pair from selected contents(by
+		// Insert location ID and content endTimePair from selected contents(by
 		// location descending order) into result map
 		int i = 0;
 		for (Integer key : locations.keySet())
@@ -138,37 +172,85 @@ public class Solution {
 	 *         that location
 	 */
 	public Map<Integer, ArrayList<Content>> Scheduling(
-			ArrayList<Content> contents, Map<Integer, Integer> locations) {
-		Map<Integer, ArrayList<Content>> locationContents = new TreeMap<Integer, ArrayList<Content>>(
-				new Comparator<Integer>() {
-					@Override
-					public int compare(Integer i1, Integer i2) {
-						return i2.compareTo(i1);
-					}
-				});
+			ArrayList<Content> scheduleRequest, Map<Integer, Integer> locations) {
+		Map<Integer, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>(); // new
+																									// TreeMap<Integer,
+																									// ArrayList<Content>>(
+		// new Comparator<Integer>() {
+		// @Override
+		// public int compare(Integer i1, Integer i2) {
+		// return i2.compareTo(i1);
+		// }
+		// });
 
 		// Insert all contents under their corresponding location
-		for (Content c : contents) {
-			if (locationContents.containsKey(c.Lid)) {
-				locationContents.get(c.Lid).add(c);
+		for (Content req : scheduleRequest) {
+			if (locationContents.containsKey(req.getLocationId())) {
+				locationContents.get(req.getLocationId()).add(req);
 			} else {
-				ArrayList<Content> cs = new ArrayList<Content>();
-				cs.add(c);
-				locationContents.put(c.Lid, cs);
+				ArrayList<Content> requests = new ArrayList<Content>();
+				requests.add(req);
+				locationContents.put(req.getLocationId(), requests);
 			}
 		}
 
 		// Sort contents for every location by their start time
-		for (ArrayList<Content> cs : locationContents.values()) {
-			Collections.sort(cs, new Comparator<Content>() {
+		for (ArrayList<Content> requests : locationContents.values()) {
+			Collections.sort(requests, new Comparator<Content>() {
 				@Override
-				public int compare(Content c1, Content c2) {
-					return ((Integer) c1.start).compareTo((Integer) c2.start);
+				public int compare(Content r1, Content r2) {
+					return r1.getStartTime() != r2.getStartTime() ? r1.getStartTime() - r2.getStartTime() : r1.getEndTime()
+							- r2.getEndTime();
 				}
 			});
-			removeInvalid(cs);
+			removeInvalidSchedules(requests);
 		}
 		return locationContents;
+	}
+
+	// Method 2;
+	public void removeInvalidSchedules(ArrayList<Content> requests) {
+		List<TimeNode> timeList = new ArrayList<TimeNode>();
+		List<Content> badRequests = new ArrayList<Content>();
+		for (Content req : requests) {
+			TimeNode start = new TimeNode(req.getStartTime(), 1, req.getEndTime() - req.getStartTime(), req);
+			TimeNode end = new TimeNode(req.getEndTime(), 0, req.getEndTime() - req.getEndTime(), req);
+			start.endTimePair = end;
+			timeList.add(start);
+			timeList.add(end);
+		}
+		HashSet<String> set = new HashSet<String>();
+		Collections.sort(timeList, TimeNode.scheduleComparator);
+		// int count = 0;
+		for (TimeNode node : timeList) {
+			if (node.isStart == 1) {
+				// Not include same content, content.content means the "ID" of
+				// the content
+				if (set.size() < 3 && !set.contains(node.request.getContentId())) {
+					// count++;
+					// take a pick
+					set.add(node.request.getContentId());
+				}
+				// If exceed 3 at the same time or there are same contents overlapped
+				else {
+					// Avoid subtract one more time if schedule duplicate by marking
+					// the isStart in ')' schedule with -1
+					node.endTimePair.isStart = -1;
+					//rejectFile.writetofile(request)
+					badRequests.add(node.request);
+				}
+				// Add to check duplicate
+			}
+			// means the corresponding schedule has been added and
+			// there is no duplicate within current VALID range(the range
+			// containing less than 4 ads).
+			else if (node.isStart == 0) {
+				// count--;
+				// remove the content when get a ')'
+				set.remove(node.request.getContentId());
+			}
+		}
+		requests.removeAll(badRequests);
 	}
 
 	public void removeInvalid(ArrayList<Content> contents) {
@@ -179,55 +261,70 @@ public class Solution {
 						return ((Integer) c1.end).compareTo((Integer) c2.end);
 					}
 				});
-
 		ArrayList<Content> badContents = new ArrayList<Content>();
-		int overlapCount = 0;
-
+		// int overlapCount = 0;
+		Iterator<Content> it = contents.iterator();
 		// Traverse every content sorted by their start time
-		for (Content c1 : contents) {
+		while (it.hasNext()) {
+			Content c1 = it.next();
 			// Find all the contents which start time lay in time interval of
 			// current content
-			// If start time of current content is greater than current minimum
+			// If start time of current content is greater than and equal to
+			// current minimum
 			// end time of previous Contents,
 			// poll front Content of queue till the end time of queue front is
 			// larger than start time of current Content
 			while (!queue.isEmpty() && c1.start >= queue.peek().end) {
 				queue.poll();
-				overlapCount--;
+				// overlapCount--;
 			}
 
 			// Check if there is a duplicate in current contents
 			// TODO: Keep the one with greater value, for now just skip detected
 			// duplicate one
-			Content badContent = isSameContent(queue, c1);
-			if (badContent != null) {
-				badContents.add(badContent);
+			// Content badContent = isSameContent(queue, c1);
+			if (!hasSameContent(queue, c1) && queue.size() < 3) {// (badContent
+																	// != null)
+																	// {
+				queue.offer(c1);
+			} else {
+				it.remove();
+				badContents.add(c1);
 			}
 			// Put current content into queue when there occurs a conflict and
 			// current
 			// content has greater value or there is not a conflict at all.
-			if (badContent == c1 || badContent == null) {
-				queue.offer(c1);
-			}
+			// if (badContent == null || badContent == c1) {
+			// queue.offer(c1);
+			// }
 			// If there is no conflict, increment the overlap count
-			if (badContent == null) {
-				overlapCount++;
-			}
+			// if (badContent == null) {
+			// overlapCount++;
+			// }
 			// If overlapped contents exceed 4, remove the one with minimum
 			// value from both priorityqueue and original content list
-			if (overlapCount >= 4) {
-				Content contentWithMinValue = queue.peek();
-				for (Content c : queue) {
-					if (c.value < contentWithMinValue.value) {
-						contentWithMinValue = c;
-					}
-				}
-				queue.remove(contentWithMinValue);
-				badContents.add(contentWithMinValue);
-				overlapCount--;
+			// if (queue.size() >= 4) {
+			// Content contentWithMinValue = queue.peek();
+			// for (Content c : queue) {
+			// if (c.value < contentWithMinValue.value) {
+			// contentWithMinValue = c;
+			// }
+			// }
+			// queue.remove(contentWithMinValue);
+			// badContents.add(contentWithMinValue);
+			// //overlapCount--;
+			// }
+		}
+		// contents.removeAll(badContents);
+	}
+
+	public boolean hasSameContent(PriorityQueue<Content> q, Content content) {
+		for (Content c : q) {
+			if (c.content == content.content) {
+				return true;
 			}
 		}
-		contents.removeAll(badContents);
+		return false;
 	}
 
 	public Content isSameContent(PriorityQueue<Content> q, Content content) {
@@ -264,8 +361,8 @@ public class Solution {
 		c4.setLocationID(l2.id);
 		c5.setLocationID(l2.id);
 		c6.setLocationID(l2.id);
-		c7.setLocationID(l3.id);
-		c8.setLocationID(l3.id);
+		c7.setLocationID(l2.id);
+		c8.setLocationID(l2.id);
 		c9.setLocationID(l3.id);
 
 		c1.setValue(7);
@@ -304,8 +401,8 @@ public class Solution {
 		c4.setEndTime(12);
 		c5.setEndTime(8);
 		c6.setEndTime(7);
-		c7.setEndTime(2);
-		c8.setEndTime(4);
+		c7.setEndTime(6);
+		c8.setEndTime(6);
 		c9.setEndTime(6);
 
 		ArrayList<Content> contents = new ArrayList<Content>();
@@ -329,19 +426,19 @@ public class Solution {
 	}
 
 	public void print(Map<Integer, ArrayList<Content>> m) {
-		for (Map.Entry pair : m.entrySet()) {
-			System.out.print("Location ID: " + pair.getKey() + " ");
+		for (Map.Entry endTimePair : m.entrySet()) {
+			System.out.print("Location ID: " + endTimePair.getKey() + " ");
 			System.out.print("Contents: ");
-			for (Content c : ((ArrayList<Content>) pair.getValue()))
+			for (Content c : ((ArrayList<Content>) endTimePair.getValue()))
 				System.out.print(c.id);
 			System.out.println();
 		}
 	}
 
 	public void printSelection(Map<Integer, Content> m) {
-		for (Map.Entry pair : m.entrySet()) {
-			System.out.print("Location ID: " + pair.getKey() + " ");
-			System.out.println("Content: " + ((Content) pair.getValue()).id);
+		for (Map.Entry endTimePair : m.entrySet()) {
+			System.out.print("Location ID: " + endTimePair.getKey() + " ");
+			System.out.println("Content: " + ((Content) endTimePair.getValue()).id);
 		}
 	}
 }

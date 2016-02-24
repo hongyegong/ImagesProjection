@@ -15,6 +15,10 @@ public class Content {
 		this.id = id;
 	}
 	
+	public String getContentId() {
+		return this.content;
+	}
+	
 	public void setContent(String content) {
 		this.content = content;
 	}
@@ -23,12 +27,24 @@ public class Content {
 		Lid = id;
 	}
 	
+	public int getLocationId() {
+		return Lid;
+	}
+	
 	public void setValue(int v) {
 		value = v;
 	}
 	
+	public int getStartTime() {
+		return start;
+	}
+	
 	public void setStartTime(int s) {
 		start = s;
+	}
+	
+	public int getEndTime() {
+		return end;
 	}
 	
 	public void setEndTime(int e) {
