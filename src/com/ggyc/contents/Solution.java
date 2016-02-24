@@ -58,7 +58,7 @@ public class Solution {
 	 * @return An optimal schedule for all locations
 	 */
 
-	public HashMap<Integer, Content> Selection(ArrayList<Content> contents,
+	public HashMap<String, Content> Selection(ArrayList<Content> contents,
 			Map<Integer, Integer> locations, int time) {
 		HashMap<String, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>();
 		// Collections.sort(contents, new Comparator<Content>() {
@@ -142,11 +142,11 @@ public class Solution {
 
 		helper(root, new ArrayList<Content>(), locations, 0);
 
-		HashMap<Integer, Content> ret = new HashMap<Integer, Content>();
+		HashMap<String, Content> ret = new HashMap<Integer, Content>();
 		// Insert location ID and content endTimePair from selected contents(by
 		// location descending order) into result map
 		int i = 0;
-		for (Integer key : locations.keySet())
+		for (String key : locationContents.keySet())
 			ret.put(key, selectedContents.get(i++));
 
 		return ret;
@@ -158,8 +158,7 @@ public class Solution {
 		if (root == null || list.contains(root.content))
 			return;
 		if (root.content.id != -1 && root.content.value >= 0) {
-			tmpValue += root.content.value == 0 ? 0 : locations
-					.get(root.content.Lid) * root.content.value;
+			tmpValue += locations.get(root.content.Lid) * root.content.value;
 		}
 		if (root.contents.size() == 0 && tmpValue > maxWeight) {
 			list.add(root.content);
@@ -225,9 +224,18 @@ public class Solution {
 	}
 
 	// Method 2;
-	// Put starts and ends of all the intervals together, and then sort them with marking the attribute(start or end). Then we can convert this problem as a problem of nested parenthesis
-	// matching. we regard start time as left parenthesis and end time as right parenthesis. We loop through the sorted time with a counter, when it's start we plus 1, subtract 1 when it's end.
-	// In the process of recording the count, when this count exceed 3 or when the duplicate happens within a valid range, we just ignore it. For duplicate detect, I plan to use hashset.
+	// Consider each schedule request as a time interval. Put starts and ends of all the intervals together, and then sort them with marking the attribute(start or end). Then we can convert this problem 
+	// as a problem of nested parenthesis matching. we regard start time as left parenthesis and end time as right parenthesis. We loop through the sorted time with a counter, when it's start we 
+	// plus 1, subtract 1 when it's end. In the process of recording the count, when this count exceed 3 which means there already got 3 options at the same time or when the duplicate happens within 
+	// a valid range, we just reject it. For duplicate detect, I plan to use hashset. The advantage is method itself is pretty straightforward and we don't need some complex data structures. The cons
+	// is we need create TimeNode for each start or end time and store them into a list, this needs extra space.
+	
+	//imporve: 1.This method use O(n) space. Or we can use min-heap (priority queue) to store requests in ascending order of end time. Still we need to sort the contents of each location by their
+	// start time. And loop through the requests for each location, if the start time of current coming request is greater than end time of top request in this min-heap, we keep poping from heap
+	// until the end time of top request is greater than start time of current request. Popped requests won't conflict with later coming request and are all valid(the comming in requests are sorted
+	// by start time). Then we add current request into the priorityqueue, if the size of queue if greater than 3 which means we already have 3 options for a location at same time, or if there is a 
+	// duplicate contentId in the queue which means there are dupliates contents in a location at the same time, then we can reject current request and keep persuing the next one. This method we 
+	// just need to create a PQ to maintain a window, which I call it valid range, the longest overlapped non-duplicate window with size less than 4. So the space complexity would be constant.
 	public void removeInvalidSchedules(ArrayList<Content> requests) {
 		List<TimeNode> timeList = new ArrayList<TimeNode>();
 		List<Content> badRequests = new ArrayList<Content>();
