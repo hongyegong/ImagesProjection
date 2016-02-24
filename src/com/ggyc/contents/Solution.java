@@ -59,27 +59,44 @@ public class Solution {
 	 */
 
 	public HashMap<Integer, Content> Selection(ArrayList<Content> contents,
-			Map<Integer, Integer> locations) {
-		HashMap<Integer, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>();
+			Map<Integer, Integer> locations, int time) {
+		HashMap<String, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>();
 		// Collections.sort(contents, new Comparator<Content>() {
 		// @Override
 		// public int compare(Content c1, Content c2) {
 		// return c1.Lid < c2.Lid ? -1 : c1.Lid == c2.Lid ? 0 : 1;
 		// }
 		// });
-
-		for (Content c : contents) {
-			// If location is already hashed in
-			if (locationContents.containsKey(c.Lid)) {
-				int locationId = c.Lid;
-				locationContents.get(locationId).add(c);
-				// A new location coming up
-			} else {
-				ArrayList<Content> contentsOfLocation = new ArrayList<Content>();
-				contentsOfLocation.add(c);
-				locationContents.put(c.Lid, contentsOfLocation);
-			}
-		}
+		//a hashmap (time, (location, ScheduleRequest))
+		HashMap<Integer, HashMap<String, ArrayList<ScheduleRequest>>> map = new HashMap<Integer, HashMap<String, ArrayList<ScheduleRequest>>>();
+        //a hashmap (time,(location, ContentMaxScore))
+        HashMap<Integer, HashMap<String, Integer>> contentmax = new HashMap<Integer, HashMap<String, Integer>>();
+		Iterator<ScheduleRequest> iter = ReadIn();   //put all input into a HashMap
+		while (iter.hasNext()) {   // traverse the SR in order 
+			ScheduleRequest sr = iter.next();
+        	for (int i = sr.start; i <= sr.end; i++) {
+        		if (!map.containsKey(i)) {
+        			map.put(i, new HashMap<String, ArrayList<ScheduleRequest>>());
+        		}
+        		if (!map.get(i).containsKey(sr.LocationId)) {  
+        			map.get(i).put(sr.LocationId, new ArrayList<ScheduleRequest>());
+        		}
+				map.get(i).get(sr.LocationId).add(sr); 
+        	}
+        }
+		locationContents = map.get(time);
+//		for (Content c : contents) {
+//			// If location is already hashed in
+//			if (locationContents.containsKey(c.Lid)) {
+//				int locationId = c.Lid;
+//				locationContents.get(locationId).add(c);
+//				// A new location coming up
+//			} else {
+//				ArrayList<Content> contentsOfLocation = new ArrayList<Content>();
+//				contentsOfLocation.add(c);
+//				locationContents.put(c.Lid, contentsOfLocation);
+//			}
+//		}
 
 		for (ArrayList<Content> contentsOfLocation : locationContents.values()) {
 			// Sort contents on an ad location by their value
@@ -253,7 +270,7 @@ public class Solution {
 		requests.removeAll(badRequests);
 	}
 
-	public void removeInvalid(ArrayList<Content> contents) {
+	public void removeInvalid(ArrayList<Content> requests) {
 		PriorityQueue<Content> queue = new PriorityQueue<Content>(
 				new Comparator<Content>() {
 					@Override
@@ -261,12 +278,12 @@ public class Solution {
 						return ((Integer) c1.end).compareTo((Integer) c2.end);
 					}
 				});
-		ArrayList<Content> badContents = new ArrayList<Content>();
+		ArrayList<Content> badRequests = new ArrayList<Content>();
 		// int overlapCount = 0;
-		Iterator<Content> it = contents.iterator();
+		Iterator<Content> it = requests.iterator();
 		// Traverse every content sorted by their start time
 		while (it.hasNext()) {
-			Content c1 = it.next();
+			Content req = it.next();
 			// Find all the contents which start time lay in time interval of
 			// current content
 			// If start time of current content is greater than and equal to
@@ -274,7 +291,7 @@ public class Solution {
 			// end time of previous Contents,
 			// poll front Content of queue till the end time of queue front is
 			// larger than start time of current Content
-			while (!queue.isEmpty() && c1.start >= queue.peek().end) {
+			while (!queue.isEmpty() && req.getStartTime() >= queue.peek().getEndTime()) {
 				queue.poll();
 				// overlapCount--;
 			}
@@ -283,13 +300,13 @@ public class Solution {
 			// TODO: Keep the one with greater value, for now just skip detected
 			// duplicate one
 			// Content badContent = isSameContent(queue, c1);
-			if (!hasSameContent(queue, c1) && queue.size() < 3) {// (badContent
+			if (!hasSameContent(queue, req) && queue.size() < 3) {// (badContent
 																	// != null)
 																	// {
-				queue.offer(c1);
+				queue.offer(req);
 			} else {
 				it.remove();
-				badContents.add(c1);
+				badRequests.add(req);
 			}
 			// Put current content into queue when there occurs a conflict and
 			// current
@@ -320,7 +337,7 @@ public class Solution {
 
 	public boolean hasSameContent(PriorityQueue<Content> q, Content content) {
 		for (Content c : q) {
-			if (c.content == content.content) {
+			if (c.getContentId() == content.getContentId()) {
 				return true;
 			}
 		}
