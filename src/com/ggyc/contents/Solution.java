@@ -69,8 +69,7 @@ public class Solution {
 		// });
 		//a hashmap (time, (location, ScheduleRequest))
 		HashMap<Integer, HashMap<String, ArrayList<ScheduleRequest>>> map = new HashMap<Integer, HashMap<String, ArrayList<ScheduleRequest>>>();
-        //a hashmap (time,(location, ContentMaxScore))
-        HashMap<Integer, HashMap<String, Integer>> contentmax = new HashMap<Integer, HashMap<String, Integer>>();
+
 		Iterator<ScheduleRequest> iter = ReadIn();   //put all input into a HashMap
 		while (iter.hasNext()) {   // traverse the SR in order 
 			ScheduleRequest sr = iter.next();
@@ -226,6 +225,9 @@ public class Solution {
 	}
 
 	// Method 2;
+	// Put starts and ends of all the intervals together, and then sort them with marking the attribute(start or end). Then we can convert this problem as a problem of nested parenthesis
+	// matching. we regard start time as left parenthesis and end time as right parenthesis. We loop through the sorted time with a counter, when it's start we plus 1, subtract 1 when it's end.
+	// In the process of recording the count, when this count exceed 3 or when the duplicate happens within a valid range, we just ignore it. For duplicate detect, I plan to use hashset.
 	public void removeInvalidSchedules(ArrayList<Content> requests) {
 		List<TimeNode> timeList = new ArrayList<TimeNode>();
 		List<Content> badRequests = new ArrayList<Content>();
