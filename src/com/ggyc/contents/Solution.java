@@ -67,35 +67,38 @@ public class Solution {
 		// return c1.Lid < c2.Lid ? -1 : c1.Lid == c2.Lid ? 0 : 1;
 		// }
 		// });
-		//a hashmap (time, (location, ScheduleRequest))
+		// a hashmap (time, (location, ScheduleRequest))
 		HashMap<Integer, HashMap<String, ArrayList<ScheduleRequest>>> map = new HashMap<Integer, HashMap<String, ArrayList<ScheduleRequest>>>();
 
-		Iterator<ScheduleRequest> iter = ReadIn();   //put all input into a HashMap
-		while (iter.hasNext()) {   // traverse the SR in order 
+		Iterator<ScheduleRequest> iter = ReadIn(); // put all input into a
+													// HashMap
+		while (iter.hasNext()) { // traverse the SR in order
 			ScheduleRequest sr = iter.next();
-        	for (int i = sr.start; i <= sr.end; i++) {
-        		if (!map.containsKey(i)) {
-        			map.put(i, new HashMap<String, ArrayList<ScheduleRequest>>());
-        		}
-        		if (!map.get(i).containsKey(sr.LocationId)) {  
-        			map.get(i).put(sr.LocationId, new ArrayList<ScheduleRequest>());
-        		}
-				map.get(i).get(sr.LocationId).add(sr); 
-        	}
-        }
+			for (int i = sr.start; i <= sr.end; i++) {
+				if (!map.containsKey(i)) {
+					map.put(i,
+							new HashMap<String, ArrayList<ScheduleRequest>>());
+				}
+				if (!map.get(i).containsKey(sr.LocationId)) {
+					map.get(i).put(sr.LocationId,
+							new ArrayList<ScheduleRequest>());
+				}
+				map.get(i).get(sr.LocationId).add(sr);
+			}
+		}
 		locationContents = map.get(time);
-//		for (Content c : contents) {
-//			// If location is already hashed in
-//			if (locationContents.containsKey(c.Lid)) {
-//				int locationId = c.Lid;
-//				locationContents.get(locationId).add(c);
-//				// A new location coming up
-//			} else {
-//				ArrayList<Content> contentsOfLocation = new ArrayList<Content>();
-//				contentsOfLocation.add(c);
-//				locationContents.put(c.Lid, contentsOfLocation);
-//			}
-//		}
+		// for (Content c : contents) {
+		// // If location is already hashed in
+		// if (locationContents.containsKey(c.Lid)) {
+		// int locationId = c.Lid;
+		// locationContents.get(locationId).add(c);
+		// // A new location coming up
+		// } else {
+		// ArrayList<Content> contentsOfLocation = new ArrayList<Content>();
+		// contentsOfLocation.add(c);
+		// locationContents.put(c.Lid, contentsOfLocation);
+		// }
+		// }
 
 		for (ArrayList<Content> contentsOfLocation : locationContents.values()) {
 			// Sort contents on an ad location by their value
@@ -188,25 +191,14 @@ public class Solution {
 	 */
 	public Map<Integer, ArrayList<Content>> Scheduling(
 			ArrayList<Content> scheduleRequest, Map<Integer, Integer> locations) {
-		Map<Integer, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>(); // new
-																									// TreeMap<Integer,
-																									// ArrayList<Content>>(
-		// new Comparator<Integer>() {
-		// @Override
-		// public int compare(Integer i1, Integer i2) {
-		// return i2.compareTo(i1);
-		// }
-		// });
-
+		Map<Integer, ArrayList<Content>> locationContents = new HashMap<Integer, ArrayList<Content>>();
 		// Insert all contents under their corresponding location
 		for (Content req : scheduleRequest) {
-			if (locationContents.containsKey(req.getLocationId())) {
-				locationContents.get(req.getLocationId()).add(req);
-			} else {
-				ArrayList<Content> requests = new ArrayList<Content>();
-				requests.add(req);
-				locationContents.put(req.getLocationId(), requests);
+			if (!locationContents.containsKey(req.getLocationId())) {
+				locationContents.put(req.getLocationId(),
+						new ArrayList<Content>());
 			}
+			locationContents.get(req.getLocationId()).add(req);
 		}
 
 		// Sort contents for every location by their start time
@@ -214,8 +206,9 @@ public class Solution {
 			Collections.sort(requests, new Comparator<Content>() {
 				@Override
 				public int compare(Content r1, Content r2) {
-					return r1.getStartTime() != r2.getStartTime() ? r1.getStartTime() - r2.getStartTime() : r1.getEndTime()
-							- r2.getEndTime();
+					return r1.getStartTime() != r2.getStartTime() ? r1
+							.getStartTime() - r2.getStartTime() : r1
+							.getEndTime() - r2.getEndTime();
 				}
 			});
 			removeInvalidSchedules(requests);
@@ -224,53 +217,98 @@ public class Solution {
 	}
 
 	// Method 2;
-	// Consider each schedule request as a time interval. Put starts and ends of all the intervals together, and then sort them with marking the attribute(start or end). Then we can convert this problem 
-	// as a problem of nested parenthesis matching. we regard start time as left parenthesis and end time as right parenthesis. We loop through the sorted time with a counter, when it's start we 
-	// plus 1, subtract 1 when it's end. In the process of recording the count, when this count exceed 3 which means there already got 3 options at the same time or when the duplicate happens within 
-	// a valid range, we just reject it. For duplicate detect, I plan to use hashset. The advantage is method itself is pretty straightforward and we don't need some complex data structures. The cons
-	// is we need create TimeNode for each start or end time and store them into a list, this needs extra space.
-	
-	//imporve: 1.This method use O(n) space. Or we can use min-heap (priority queue) to store requests in ascending order of end time. Still we need to sort the contents of each location by their
-	// start time. And loop through the requests for each location, if the start time of current coming request is greater than end time of top request in this min-heap, we keep poping from heap
-	// until the end time of top request is greater than start time of current request. Popped requests won't conflict with later coming request and are all valid(the comming in requests are sorted
-	// by start time). Then we add current request into the priorityqueue, if the size of queue if greater than 3 which means we already have 3 options for a location at same time, or if there is a 
-	// duplicate contentId in the queue which means there are dupliates contents in a location at the same time, then we can reject current request and keep persuing the next one. This method we 
-	// just need to create a PQ to maintain a window, which I call it valid range, the longest overlapped non-duplicate window with size less than 4. So the space complexity would be constant.
+	// Consider each schedule request as a time interval. Find most overlapped
+	// ranges or most continuous start time points, only if they are not over 3
+	// or there are no duplicate within an valid range,
+	// the schedule is valid, keep checking start and end time for each
+	// interval.
+	// Consider each schedule request as a time interval. Put starts and ends of
+	// all the intervals together with marking the attribute(start or end), and
+	// then sort them by the time order. Then we
+	// can convert this problem as a problem of matching nested parenthesis. we
+	// regard start time as left parenthesis and end time as right parenthesis.
+	// Then loop through the sorted time with a
+	// counter, when it's start we plus 1 to counter, subtract 1 when it's end.
+	// The number of this count, which is number of current open parenthesis,
+	// represents how many overlapped intervals there
+	// are. During the process of recording the count, when this count is added
+	// up to 3 which means there already got 3 options at some time within the
+	// range of current interval or when the duplicate
+	// happens within a valid range, we just reject it. For duplicate detection,
+	// I plan to use hashset. The advantage is method itself is pretty
+	// straightforward and we don't need some complex data
+	// structures. The cons is we need create TimeNode for each start or end
+	// time and store them into a list, this needs extra space.
+
+	// Improve: 1.This method use O(n) space. Or we can use min-heap (priority
+	// queue) to store requests in ascending order of end time. Still we need to
+	// sort the contents of each location by their
+	// start time first. And loop through the requests for each location and add
+	// requests into queue. We just retain the contents, end time of which lay
+	// in time interval of
+	// current content in the queue. if the start
+	// time of current coming request is greater than end time of top request in
+	// this min-heap, we keep polling from heap
+	// until the end time of top request is greater than start time of current
+	// request. Popped requests won't conflict with later coming request and are
+	// all valid(the coming in requests are sorted
+	// by start time, if end time of popped requests are greater than start time
+	// of current time, then they must be greater than any start time of of
+	// later coming request). Then we add current request into the
+	// priorityqueue, if the size of queue if greater than 3 which means we
+	// already have 3 options for a location at same time, or if there is a
+	// duplicate contentId in the queue which means there are duplicates
+	// contents in a location at the same time, then we can reject current
+	// request and keep persuing the next one. This method we
+	// just need to create a PQ to maintain a window, which I call it valid
+	// range, the longest overlapped non-duplicate window with contents number
+	// less than 4. So the space complexity would be constant.
+	// 2. Concurrently check the validity of schedules for each location with
+	// multi-thread programming.
+	// 3. when remove invalid content, instead of directly removing the firstly
+	// detected invalid one, take the factor of content value and the content
+	// length into consideration to get the optimized schedule for each
+	// location.
 	public void removeInvalidSchedules(ArrayList<Content> requests) {
 		List<TimeNode> timeList = new ArrayList<TimeNode>();
 		List<Content> badRequests = new ArrayList<Content>();
 		for (Content req : requests) {
-			TimeNode start = new TimeNode(req.getStartTime(), 1, req.getEndTime() - req.getStartTime(), req);
-			TimeNode end = new TimeNode(req.getEndTime(), 0, req.getEndTime() - req.getEndTime(), req);
+			TimeNode start = new TimeNode(req.getStartTime(), 1,
+					req.getEndTime() - req.getStartTime(), req);
+			TimeNode end = new TimeNode(req.getEndTime(), 0, req.getEndTime()
+					- req.getEndTime(), req);
 			start.endTimePair = end;
 			timeList.add(start);
 			timeList.add(end);
 		}
+		// Use hashmap if we need to associate SR to each content for later
+		// optimization
 		HashSet<String> set = new HashSet<String>();
 		Collections.sort(timeList, TimeNode.scheduleComparator);
 		// int count = 0;
 		for (TimeNode node : timeList) {
 			if (node.isStart == 1) {
-				// Not include same content, content.content means the "ID" of
-				// the content
-				if (set.size() < 3 && !set.contains(node.request.getContentId())) {
+				// Not include same content
+				if (set.size() < 3
+						&& !set.contains(node.request.getContentId())) {
 					// count++;
 					// take a pick
 					set.add(node.request.getContentId());
 				}
-				// If exceed 3 at the same time or there are same contents overlapped
+				// If exceed 3 at the same time or there are same contents
+				// overlapped
 				else {
-					// Avoid subtract one more time if schedule duplicate by marking
-					// the isStart in ')' schedule with -1
+					// Avoid subtract counter for paired timenode by marking
+					// the isStart of paired timenode with -1
 					node.endTimePair.isStart = -1;
-					//rejectFile.writetofile(request)
+					// rejectFile.writetofile(request)
 					badRequests.add(node.request);
 				}
 				// Add to check duplicate
 			}
 			// means the corresponding schedule has been added and
 			// there is no duplicate within current VALID range(the range
-			// containing less than 4 ads).
+			// containing less than 4 overlapped ads).
 			else if (node.isStart == 0) {
 				// count--;
 				// remove the content when get a ')'
@@ -294,14 +332,14 @@ public class Solution {
 		// Traverse every content sorted by their start time
 		while (it.hasNext()) {
 			Content req = it.next();
-			// Find all the contents which start time lay in time interval of
+			// Find all the contents which end time lay in time interval of
 			// current content
 			// If start time of current content is greater than and equal to
-			// current minimum
-			// end time of previous Contents,
+			// current minimum end time of previous Contents,
 			// poll front Content of queue till the end time of queue front is
 			// larger than start time of current Content
-			while (!queue.isEmpty() && req.getStartTime() >= queue.peek().getEndTime()) {
+			while (!queue.isEmpty()
+					&& req.getStartTime() >= queue.peek().getEndTime()) {
 				queue.poll();
 				// overlapCount--;
 			}
@@ -465,7 +503,8 @@ public class Solution {
 	public void printSelection(Map<Integer, Content> m) {
 		for (Map.Entry endTimePair : m.entrySet()) {
 			System.out.print("Location ID: " + endTimePair.getKey() + " ");
-			System.out.println("Content: " + ((Content) endTimePair.getValue()).id);
+			System.out.println("Content: "
+					+ ((Content) endTimePair.getValue()).id);
 		}
 	}
 }
