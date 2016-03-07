@@ -203,6 +203,7 @@ public class Solution {
 
 		// Sort contents for every location by their start time
 		for (ArrayList<Content> requests : locationContents.values()) {
+			// May not need this if we adopt 2nd method
 			Collections.sort(requests, new Comparator<Content>() {
 				@Override
 				public int compare(Content r1, Content r2) {
@@ -219,12 +220,13 @@ public class Solution {
 	// Method 2;
 	// Consider each schedule request as a time interval. Find most overlapped
 	// ranges or most continuous start time points, only if they are not over 3
-	// or there are no duplicate within an valid range,
-	// the schedule is valid, keep checking start and end time for each
-	// interval.
-	// Consider each schedule request as a time interval. Put starts and ends of
-	// all the intervals together with marking the attribute(start or end), and
-	// then sort them by the time order. Then we
+	// or there are no duplicate within an valid range, the schedule is valid,
+	// keep checking start and end time for each interval. Consider each
+	// schedule
+	// request as a time interval. Put starts and ends of all the intervals
+	// together
+	// with marking the attribute(start or end), and then sort them by the time
+	// order. Then we
 	// can convert this problem as a problem of matching nested parenthesis. we
 	// regard start time as left parenthesis and end time as right parenthesis.
 	// Then loop through the sorted time with a
@@ -243,7 +245,7 @@ public class Solution {
 	// Improve: 1.This method use O(n) space. Or we can use min-heap (priority
 	// queue) to store requests in ascending order of end time. Still we need to
 	// sort the contents of each location by their
-	// start time first. And loop through the requests for each location and add
+	// start time first. And loop through the requests of each location and add
 	// requests into queue. We just retain the contents, end time of which lay
 	// in time interval of
 	// current content in the queue. if the start
@@ -254,7 +256,8 @@ public class Solution {
 	// all valid(the coming in requests are sorted
 	// by start time, if end time of popped requests are greater than start time
 	// of current time, then they must be greater than any start time of of
-	// later coming request). Then we add current request into the
+	// later coming request). Basically, after doing this all SRs in the queue
+	// are all overlapped with each other. Then we add current request into the
 	// priorityqueue, if the size of queue if greater than 3 which means we
 	// already have 3 options for a location at same time, or if there is a
 	// duplicate contentId in the queue which means there are duplicates
@@ -263,7 +266,7 @@ public class Solution {
 	// just need to create a PQ to maintain a window, which I call it valid
 	// range, the longest overlapped non-duplicate window with contents number
 	// less than 4. So the space complexity would be constant.
-	// 2. Concurrently check the validity of schedules for each location with
+	// 2. Concurrently check the validity of schedules of each location with
 	// multi-thread programming.
 	// 3. when remove invalid content, instead of directly removing the firstly
 	// detected invalid one, take the factor of content value and the content
